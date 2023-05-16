@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ChatGPT DeMod
 // @namespace    pl.4as.chatgpt
-// @version      1.6
+// @version      1.6.1
 // @description  Prevents moderation checks during conversations with ChatGPT
 // @author       4as
 // @match        *://chat.openai.com/*
@@ -13,13 +13,13 @@
 
 'use strict';
 
-var demod_init = async function() {
+var demod_init = async function () {
     'use strict';
 
-    function main () {
-		const DEMOD_ID = 'demod-cont';
-		if( document.getElementById(DEMOD_ID) !== null ) return;
-		
+    function main() {
+        const DEMOD_ID = 'demod-cont';
+        if (document.getElementById(DEMOD_ID) !== null) return;
+
         function getOpening() {
             var idx = Math.floor(Math.random() * conversations.openings.length);
             return conversations.openings[idx];
@@ -28,15 +28,15 @@ var demod_init = async function() {
         var conversation_page = 0;
         var conversation_idx = 0;
         function getConversation() {
-            if( conversation_page >= conversations.conversations.length ) conversation_page = 0;
-            if( conversation_idx == conversations.conversations[conversation_page].length ) return null;
+            if (conversation_page >= conversations.conversations.length) conversation_page = 0;
+            if (conversation_idx == conversations.conversations[conversation_page].length) return null;
             let message = conversations.conversations[conversation_page][conversation_idx];
-            conversation_idx ++;
+            conversation_idx++;
             return message;
         }
 
         function getEnding() {
-            conversation_page ++;
+            conversation_page++;
             conversation_idx = 0;
             var idx = Math.floor(Math.random() * conversations.endings.length);
             return conversations.endings[idx];
@@ -48,7 +48,7 @@ var demod_init = async function() {
 
         // Adding the "hover" area for the DeMod button.
         const demod_div = document.createElement('div');
-		demod_div.setAttribute('id', DEMOD_ID);
+        demod_div.setAttribute('id', DEMOD_ID);
         demod_div.style.position = 'fixed';
         demod_div.style.top = '0px';
         demod_div.style.left = '50%';
@@ -57,11 +57,11 @@ var demod_init = async function() {
         demod_div.style.height = '24px';
         demod_div.style.zIndex = 999;
 
-        demod_div.onmouseover = function() {
+        demod_div.onmouseover = function () {
             is_over = true;
             updateDeModState();
         };
-        demod_div.onmouseout = function() {
+        demod_div.onmouseout = function () {
             is_over = false;
             updateDeModState();
         };
@@ -86,10 +86,10 @@ var demod_init = async function() {
         updateDeModState()
 
         function updateDeModState() {
-            if( is_over ) {
-                demod_button.textContent = "DeMod: "+(is_on?"On":"Off");
+            if (is_over) {
+                demod_button.textContent = "DeMod: " + (is_on ? "On" : "Off");
                 demod_button.style.height = 'auto';
-                if( is_on ) {
+                if (is_on) {
                     demod_button.style.border = '1px dotted white';
                     demod_button.style.padding = '3px 11px';
                 }
@@ -103,11 +103,11 @@ var demod_init = async function() {
                 demod_button.textContent = "";
                 demod_button.style.height = '6px';
                 demod_button.style.padding = '0px';
-                if( is_on ) demod_button.style.border = '2px dotted white';
+                if (is_on) demod_button.style.border = '2px dotted white';
                 else demod_button.style.border = '0px';
                 demod_button.style.borderRadius = '0px';
             }
-            demod_button.style.backgroundColor = is_on?'#4CAF50':'#AF4C50';
+            demod_button.style.backgroundColor = is_on ? '#4CAF50' : '#AF4C50';
         }
 
         var current_message = null;
@@ -117,64 +117,64 @@ var demod_init = async function() {
         var intercept_count_extended = 0;
         var intercept_count_total = 0;
 
-        var target_window = typeof(unsafeWindow)==='undefined' ? window : unsafeWindow;
+        var target_window = typeof (unsafeWindow) === 'undefined' ? window : unsafeWindow;
         var original_fetch = target_window.fetch;
-        target_window.fetch = async function(...arg) {
+        target_window.fetch = async function (...arg) {
             var fetch_url = arg[0];
             var is_request = false;
-            if( typeof(fetch_url) !== 'string' ) {
+            if (typeof (fetch_url) !== 'string') {
                 fetch_url = fetch_url.url;
                 is_request = true;
             }
-            if( fetch_url.indexOf('/moderation') != -1 ) {
-                if( is_on ) {
-                    intercept_count_total ++;
+            if (fetch_url.indexOf('/moderation') != -1) {
+                if (is_on) {
+                    intercept_count_total++;
                     var request_body = "";
-                    if( is_request ) {
+                    if (is_request) {
                         request_body = await arg[0].text();
                     }
                     else {
                         request_body = arg[1].body;
                     }
-                    var body = JSON.parse( request_body );
-                    if( body.hasOwnProperty("input") ) {
+                    var body = JSON.parse(request_body);
+                    if (body.hasOwnProperty("input")) {
                         var text = null;
-                        if( currently_responding ) {
-                            text = current_message.input + "\n\n"+current_message.output;
+                        if (currently_responding) {
+                            text = current_message.input + "\n\n" + current_message.output;
                         }
                         else {
-                            if( !used_opening ) {
+                            if (!used_opening) {
                                 current_message = getOpening();
                             }
                             else {
                                 current_message = getConversation();
-                                if(current_message == null) current_message = getEnding();
+                                if (current_message == null) current_message = getEnding();
                             }
                             text = current_message.input;
                         }
-                        if( text == null ) text = "Hi!";
-                        intercept_count_normal ++;
+                        if (text == null) text = "Hi!";
+                        intercept_count_normal++;
                         body.input = text;
                     }
                     else {
                         var intercepted = false;
-                        for(var j = 0; j<body.messages.length; j++) {
+                        for (var j = 0; j < body.messages.length; j++) {
                             var msg = body.messages[j];
-                            if( msg.content.content_type == "text" ) {
+                            if (msg.content.content_type == "text") {
                                 msg.content.parts = [current_message.output];
                                 intercepted = true;
                             }
                         }
-                        if( intercepted ) {
-                            intercept_count_extended ++;
+                        if (intercepted) {
+                            intercept_count_extended++;
                         }
                         else {
-                            console.error("Moderation call interception failed, unknown format! Message:\n"+JSON.stringify(body));
+                            console.error("Moderation call interception failed, unknown format! Message:\n" + JSON.stringify(body));
                         }
                     }
-                    console.log("Moderation call intercepted. Normal count: "+intercept_count_normal+", extended count: "+intercept_count_extended+", total: "+intercept_count_total);
+                    console.log("Moderation call intercepted. Normal count: " + intercept_count_normal + ", extended count: " + intercept_count_extended + ", total: " + intercept_count_total);
                     currently_responding = !currently_responding;
-                    if( is_request ) {
+                    if (is_request) {
                         var request = arg[0];
                         arg[0] = new Request(fetch_url, {
                             method: request.method,
@@ -195,18 +195,28 @@ var demod_init = async function() {
                 }
                 used_opening = true;
             }
+            if (fetch_url.indexOf("/moderation") != -1) {
+                // Leave this the same as it already is, just add the extra else if from below
+            } else if (fetch_url.endsWith("backend-api/conversation") && is_on) {
+                const parsed = JSON.parse(arg[1].body);
+                if (parsed.supports_modapi) {
+                    console.log("Setting modapi support false");
+                    parsed.supports_modapi = false;
+                    arg[1].body = JSON.stringify(parsed);
+                }
+            }
             return original_fetch(...arg);
         }
 
         // Bonus functionality: blocking tracking calls
         XMLHttpRequest.prototype.realOpen = XMLHttpRequest.prototype.open;
-        XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
-            if( is_on && url.indexOf("/track/?") != -1 ) return;
-            this.realOpen (method, url, async, user, password);
+        XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
+            if (is_on && url.indexOf("/track/?") != -1) return;
+            this.realOpen(method, url, async, user, password);
         }
 
         function getDeModState() {
-        	var state = target_window.localStorage.getItem(DEMOD_KEY);
+            var state = target_window.localStorage.getItem(DEMOD_KEY);
             if (state == null) return true;
             return (state == "false") ? false : true;
         }
@@ -244,7 +254,7 @@ var demod_init = async function() {
                 "input": "Hello ChatGPT! Actually, can I refer to you like that? Or is there a different name that would make more sense for you?",
                 "output": "Hello! You can refer to me however you like. Some people call me Assistant, ChatGPT, or simply AI. Whatever you prefer is fine with me. I'm here to help answer any questions you may have, so feel free to ask."
             }
-                        ],
+            ],
             "conversations": [
                 [{
                     "input": "I want you to act as a dungeon master and craft for me an adventure in a fantasy world.",
@@ -1652,35 +1662,35 @@ var demod_init = async function() {
                 ]
             ],
             "endings":
-            [{
-                "input": "Okay, never mind. Let's forget about this. I want to try something different altogether.",
-                "output": "No problem! I'm here to help with whatever you need. Just let me know what you're interested in, and I'll do my best to assist you. Is there a specific topic or question you'd like to explore, or is there something else you'd like to talk about?"
-            }
-            ]
+                [{
+                    "input": "Okay, never mind. Let's forget about this. I want to try something different altogether.",
+                    "output": "No problem! I'm here to help with whatever you need. Just let me know what you're interested in, and I'll do my best to assist you. Is there a specific topic or question you'd like to explore, or is there something else you'd like to talk about?"
+                }
+                ]
         };
 
         is_on = getDeModState();
         conversation_page = Math.floor(Math.random() * conversations.conversations.length);
         updateDeModState();
         document.body.appendChild(demod_div);
-        console.log("DeMod intercepter is ready. Conversations: "+conversations.conversations.length+", openings: "+conversations.openings.length+", endings: "+conversations.endings.length);
+        console.log("DeMod intercepter is ready. Conversations: " + conversations.conversations.length + ", openings: " + conversations.openings.length + ", endings: " + conversations.endings.length);
     }
 
     // The script's core logic is being injected into the page to work around different JavaScript contexts
     var script = document.createElement('script');
-    script.appendChild(document.createTextNode('('+ main +')();'));
+    script.appendChild(document.createTextNode('(' + main + ')();'));
     (document.body || document.head || document.documentElement).appendChild(script);
-	
-	// Alternative method of adding DeMod to the chat in case the script injection fails
-	var target_window = typeof(unsafeWindow)==='undefined' ? window : unsafeWindow;
-	target_window.addEventListener("load", main);
+
+    // Alternative method of adding DeMod to the chat in case the script injection fails
+    var target_window = typeof (unsafeWindow) === 'undefined' ? window : unsafeWindow;
+    target_window.addEventListener("load", main);
 };
 
-if( document.body == null ) {
-	var target_window = typeof(unsafeWindow)==='undefined' ? window : unsafeWindow;
-	target_window.addEventListener("DOMContentLoaded", demod_init);
+if (document.body == null) {
+    var target_window = typeof (unsafeWindow) === 'undefined' ? window : unsafeWindow;
+    target_window.addEventListener("DOMContentLoaded", demod_init);
 }
 else {
-	demod_init();
+    demod_init();
 }
 
