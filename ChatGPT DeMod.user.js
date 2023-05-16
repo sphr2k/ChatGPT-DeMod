@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         ChatGPT DeMod
+// @name         ChatGPT DeMod (temp fork)
 // @namespace    pl.4as.chatgpt
 // @version      1.6.1
 // @description  Prevents moderation checks during conversations with ChatGPT
